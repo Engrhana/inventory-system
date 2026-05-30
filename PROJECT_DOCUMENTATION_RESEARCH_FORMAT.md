@@ -4,7 +4,7 @@ Project Documentation in Research Format
 
 Project Title: Ethan's Variety Store Inventory System  
 Technology Used: Python, Django, SQLite, HTML, CSS, JavaScript, Bootstrap  
-GitHub Link: Replace this line with your GitHub repository link before submission.
+GitHub Link: (https://github.com/Engrhana/inventory-system)
 
 Abstract
 
@@ -216,6 +216,3 @@ Local Application URL
 http://127.0.0.1:8010/
 ```
 
-Submission Reminder
-
-Before submitting, replace the GitHub link placeholder near the top of this document with your actual repository URL.
