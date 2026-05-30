@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: inventory-system
+    env: python
+    buildCommand: bash build.sh
+    startCommand: gunicorn inventory_system.wsgi:application
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: False
+      - key: DJANGO_ALLOWED_HOSTS
+        value: .onrender.com
+      - key: SITE_URL
+        value: https://inventory-system.onrender.com
+      - key: LOW_STOCK_THRESHOLD
+        value: 5
+      - key: DATABASE_URL
+        fromDatabase:
+          name: inventory-system-db
+          property: connectionString
+
+databases:
+  - name: inventory-system-db
