@@ -1,0 +1,153 @@
+{% load tz %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inventory Report Print View</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            color: #1f2937;
+            background: #f8fafc;
+        }
+
+        h1, h2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .muted {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            background: #fff;
+        }
+
+        .print-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .print-actions a,
+        .print-actions button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.7rem 1rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-dark {
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .btn-light {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 0.65rem;
+            text-align: left;
+        }
+
+        th {
+            background: #f3f4f6;
+        }
+
+        @media print {
+            .print-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-actions">
+        <a class="btn-light" href="{% url 'reports' %}?start_date={{ start_date|urlencode }}&end_date={{ end_date|urlencode }}">Back to Reports</a>
+        <button class="btn-dark" type="button" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+
+    <h1>Inventory Report</h1>
+    <p class="muted">
+        This page is designed for your browser's Print / Save as PDF option.
+        <br>
+        Date filter:
+        {{ start_date|default:"All dates" }}
+        to
+        {{ end_date|default:"All dates" }}
+    </p>
+
+    <div class="summary">
+        <div class="card">
+            <strong>Total Products</strong>
+            <div>{{ total_products }}</div>
+        </div>
+        <div class="card">
+            <strong>Sale Items</strong>
+            <div>{{ total_sales }}</div>
+        </div>
+        <div class="card">
+            <strong>Revenue</strong>
+            <div>PHP {{ total_revenue|floatformat:2 }}</div>
+        </div>
+        <div class="card">
+            <strong>Low Stock Products</strong>
+            <div>{{ low_stock_count }}</div>
+        </div>
+    </div>
+
+    <h2>Detailed Sales</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Sale ID</th>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in filtered_saleitems %}
+                <tr>
+                    <td>{{ item.sale_id }}</td>
+                    <td>{{ item.sale.date|localtime|date:"d M Y H:i" }} PHT</td>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.product.category.name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>PHP {{ item.subtotal|floatformat:2 }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">No sales matched the selected date range.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,667 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}{{ form_title }} | Ethan's Variety Store{% endblock %}
+
+{% block extra_head %}
+    <style>
+        @keyframes rowSlideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .sale-workspace {
+            display: grid;
+            grid-template-columns: minmax(18rem, 0.95fr) minmax(24rem, 1.35fr);
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .sale-panel {
+            display: grid;
+            gap: 1rem;
+            align-content: start;
+        }
+
+        .sale-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .quick-product-list,
+        .searched-product-list,
+        .purchased-list {
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .purchased-empty-state {
+            display: none;
+        }
+
+        .purchased-list.is-empty + .purchased-empty-state {
+            display: block;
+        }
+
+        .quick-product {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.8rem 0.9rem;
+            border: 1px solid var(--line);
+            border-radius: 0.75rem;
+            background: #fff;
+            text-align: left;
+            color: var(--ink);
+            transition: border-color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+        }
+
+        .quick-product:hover,
+        .quick-product:focus {
+            border-color: rgba(15, 118, 110, 0.4);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .quick-product[disabled] {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .product-meta {
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .product-price {
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .product-summary {
+            padding: 0.75rem 0.9rem;
+            border: 1px solid var(--line);
+            border-radius: 0.75rem;
+            background: #fff;
+            min-height: 4.25rem;
+        }
+
+        .product-summary strong {
+            display: block;
+        }
+
+        .sale-product-field {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sale-product-field select {
+            display: none !important;
+        }
+
+        .sale-item-card {
+            display: grid;
+            gap: 0.75rem;
+            animation: rowSlideIn 0.18s ease both;
+        }
+
+        .sale-item-card[data-empty-row="true"] {
+            display: none;
+        }
+
+        .sale-item-card[data-removing] {
+            transition: opacity 0.2s ease;
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .sale-product-search input[type="search"] {
+            border-radius: 0.5rem 0 0 0.5rem;
+            border-right: 0;
+        }
+
+        .sale-product-search .input-group-text {
+            background: #fff;
+            color: var(--muted);
+            border-radius: 0 0.5rem 0.5rem 0;
+            border-left: 0;
+        }
+
+        input[name$="-DELETE"] {
+            display: none;
+        }
+
+        .line-total {
+            min-width: 7rem;
+            text-align: right;
+        }
+
+        .totals-box {
+            border-top: 1px solid var(--line);
+            padding-top: 1rem;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.65rem;
+        }
+
+        .totals-row input {
+            max-width: 10rem;
+            text-align: right;
+        }
+
+        .totals-row .input-group {
+            max-width: 10rem;
+        }
+
+        .totals-row input::-webkit-outer-spin-button,
+        .totals-row input::-webkit-inner-spin-button {
+            margin: 0;
+            appearance: none;
+        }
+
+        .totals-row input {
+            appearance: textfield;
+        }
+
+        .change-display {
+            border-radius: 0.75rem;
+            background: var(--accent-soft);
+            color: #0f5f58;
+            padding: 0.85rem 1rem;
+        }
+
+        @media (max-width: 991.98px) {
+            .sale-workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .line-total {
+                text-align: left;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <p class="text-uppercase small fw-semibold mb-2 muted-copy">Sales Management</p>
+        <h1 class="page-title mb-3">{{ form_title }}</h1>
+        <p class="muted-copy mb-0">{{ form_intro }}</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        {% if formset.non_form_errors %}
+            <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
+        {% endif %}
+
+        <div class="sale-workspace">
+            <section class="dashboard-card sale-panel">
+                <div class="sale-panel-header">
+                    <div>
+                        <p class="small text-uppercase fw-semibold muted-copy mb-1">Product List</p>
+                        <h2 class="section-heading mb-0">Top 10 Products</h2>
+                    </div>
+                    <span class="badge text-bg-light">Double click</span>
+                </div>
+
+                <div class="quick-product-list">
+                    {% for product in top_sale_products %}
+                        <button type="button"
+                                class="quick-product"
+                                data-add-product="{{ product.pk }}"
+                                data-quick-product
+                                {% if product.stock_quantity == 0 %}disabled{% endif %}>
+                            <span>
+                                <span class="fw-semibold d-block">{{ product.name }}</span>
+                                <span class="product-meta">
+                                    {{ product.category.name }} | {{ product.stock_quantity }} in stock | sold {{ product.total_sold|default:0 }}
+                                    {% if product.barcode %} | {{ product.barcode }}{% endif %}
+                                </span>
+                            </span>
+                            <span class="product-price">PHP {{ product.price|floatformat:2 }}</span>
+                        </button>
+                    {% empty %}
+                        <div class="empty-state">No products are available yet.</div>
+                    {% endfor %}
+                </div>
+
+                <div class="border-top pt-3">
+                    <label class="form-label" for="sale-product-global-search">Search Product</label>
+                    <div class="input-group sale-product-search">
+                        <input type="search" id="sale-product-global-search" class="form-control" placeholder="Search products, categories, or barcodes" autocomplete="off">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    </div>
+                </div>
+
+                <div class="searched-product-list" id="searched-product-list"></div>
+            </section>
+
+            <section class="dashboard-card sale-panel">
+                <div class="sale-panel-header">
+                    <div>
+                        <p class="small text-uppercase fw-semibold muted-copy mb-1">Purchased List</p>
+                        <h2 class="section-heading mb-0">Products Added</h2>
+                    </div>
+                </div>
+
+                <div id="sale-item-forms" class="purchased-list">
+                    {% for form in formset %}
+                        <div class="filter-card sale-item-card" data-row-index="{{ forloop.counter }}">
+                            <div class="d-flex justify-content-between align-items-center gap-3">
+                                <span class="small fw-semibold text-uppercase muted-copy" data-row-label>Item {{ forloop.counter }}</span>
+                                <strong class="line-total" data-line-total>PHP 0.00</strong>
+                            </div>
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger mb-0">{{ form.non_field_errors }}</div>
+                            {% endif %}
+                            {{ form.id }}
+                            {% if form.DELETE %}{{ form.DELETE }}{% endif %}
+                            <div class="row g-3 align-items-end">
+                                <div class="col-lg-6">
+                                    <div class="product-summary" data-product-summary>
+                                        <strong>No product selected</strong>
+                                        <span class="product-meta">Use the product list or search on the left.</span>
+                                    </div>
+                                    <div class="sale-product-field">
+                                        {{ form.product }}
+                                    </div>
+                                    {% if form.product.errors %}<div class="text-danger small mt-1">{{ form.product.errors|join:", " }}</div>{% endif %}
+                                    <div class="mt-2">
+                                        <span class="small muted-copy" data-stock-display></span>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-lg-3">
+                                    <label class="form-label" for="{{ form.quantity.id_for_label }}">Qty</label>
+                                    {{ form.quantity }}
+                                    {% if form.quantity.errors %}<div class="text-danger small mt-1">{{ form.quantity.errors|join:", " }}</div>{% endif %}
+                                </div>
+                                <div class="col-6 col-lg-3">
+                                    {% if form.instance.pk %}
+                                        <button type="button" class="btn btn-outline-danger w-100" data-remove-row title="Remove this item">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-outline-danger w-100" data-remove-new-row title="Remove this item">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="empty-state purchased-empty-state">
+                    Select a product from the left panel to add it here.
+                </div>
+
+                <template id="empty-sale-item-form">
+                    <div class="filter-card sale-item-card">
+                        <div class="d-flex justify-content-between align-items-center gap-3">
+                            <span class="small fw-semibold text-uppercase muted-copy" data-row-label>Item</span>
+                            <strong class="line-total" data-line-total>PHP 0.00</strong>
+                        </div>
+                        {{ formset.empty_form.id }}
+                        {% if formset.empty_form.DELETE %}{{ formset.empty_form.DELETE }}{% endif %}
+                        <div class="row g-3 align-items-end">
+                            <div class="col-lg-6">
+                                <div class="product-summary" data-product-summary>
+                                    <strong>No product selected</strong>
+                                    <span class="product-meta">Use the product list or search on the left.</span>
+                                </div>
+                                <div class="sale-product-field">
+                                    {{ formset.empty_form.product }}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="small muted-copy" data-stock-display></span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <label class="form-label" for="{{ formset.empty_form.quantity.id_for_label }}">Qty</label>
+                                {{ formset.empty_form.quantity }}
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <button type="button" class="btn btn-outline-danger w-100" data-remove-new-row title="Remove this item">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="totals-box">
+                    <div class="totals-row">
+                        <span class="fw-semibold">Total Amount</span>
+                        <strong id="sale-subtotal">PHP 0.00</strong>
+                    </div>
+                    <div class="totals-row">
+                        <label class="form-label mb-0" for="sale-tax">Tax</label>
+                        <div class="input-group">
+                            <input type="text" inputmode="decimal" class="form-control" id="sale-tax" name="tax_rate" value="{{ sale.tax_rate|default:'0.00' }}" data-percent-input>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <div class="totals-row">
+                        <label class="form-label mb-0" for="sale-discount">Discount</label>
+                        <div class="input-group">
+                            <input type="text" inputmode="decimal" class="form-control" id="sale-discount" name="discount_rate" value="{{ sale.discount_rate|default:'0.00' }}" data-percent-input>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <div class="totals-row fs-5">
+                        <span class="fw-bold">Grand Total</span>
+                        <strong id="sale-grand-total">PHP 0.00</strong>
+                    </div>
+                    <div class="totals-row">
+                        <label class="form-label mb-0" for="sale-amount-paid">Amount Pay</label>
+                        <input type="text" inputmode="decimal" class="form-control" id="sale-amount-paid" name="amount_paid" value="{{ sale.amount_paid|default:'0.00' }}" data-money-input>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center change-display">
+                        <span class="fw-semibold">Change</span>
+                        <strong id="sale-change">PHP 0.00</strong>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button type="submit" class="btn btn-dark">{{ submit_label }}</button>
+                    <a class="btn btn-outline-secondary" href="{% url 'sales_list' %}">Cancel</a>
+                </div>
+            </section>
+        </div>
+    </form>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const saleItemForms = document.getElementById('sale-item-forms');
+        const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+        const emptySaleItemTemplate = document.getElementById('empty-sale-item-form');
+        const productSearchInput = document.getElementById('sale-product-global-search');
+        const searchedProductList = document.getElementById('searched-product-list');
+
+        const money = (value) => 'PHP ' + Number(value || 0).toFixed(2);
+        const parseAmount = (value) => Number(String(value || '0').replace(/,/g, '')) || 0;
+        const clampPercent = (value) => Math.min(Math.max(parseAmount(value), 0), 100);
+
+        function getProductChoices() {
+            const productSelect = document.querySelector('[data-product-select]');
+            if (!productSelect) return [];
+
+            return Array.from(productSelect.options)
+                .filter((option) => option.value)
+                .map((option) => ({
+                    value: option.value,
+                    label: option.textContent,
+                    category: option.parentElement.tagName === 'OPTGROUP' ? option.parentElement.label : 'Products',
+                    price: Number(JSON.parse(productSelect.dataset.prices || '{}')[option.value] || 0),
+                    stock: Number(JSON.parse(productSelect.dataset.stocks || '{}')[option.value] || 0),
+                    barcode: String(JSON.parse(productSelect.dataset.barcodes || '{}')[option.value] || ''),
+                }));
+        }
+
+        let productChoices = [];
+
+        function renumberRows() {
+            document.querySelectorAll('[data-row-label]').forEach((label, i) => {
+                label.textContent = `Item ${i + 1}`;
+            });
+        }
+
+        function rowIsDeleted(card) {
+            const deleteCheckbox = card.querySelector('input[name$="-DELETE"]');
+            return deleteCheckbox && deleteCheckbox.checked;
+        }
+
+        function updatePurchasedEmptyState() {
+            const visibleRows = Array.from(document.querySelectorAll('.sale-item-card')).filter((card) => {
+                return !rowIsDeleted(card) && card.dataset.emptyRow !== 'true';
+            });
+            saleItemForms?.classList.toggle('is-empty', visibleRows.length === 0);
+        }
+
+        function updateTotals() {
+            let subtotal = 0;
+
+            document.querySelectorAll('.sale-item-card').forEach(card => {
+                if (rowIsDeleted(card)) return;
+                const select = card.querySelector('[data-product-select]');
+                const qtyInput = card.querySelector('input[type="number"]');
+                const prices = select ? JSON.parse(select.dataset.prices || '{}') : {};
+                const price = Number(prices[select?.value] || 0);
+                const qty = Number(qtyInput?.value || 0);
+                const lineTotal = price * qty;
+                subtotal += lineTotal;
+
+                const lineTotalEl = card.querySelector('[data-line-total]');
+                if (lineTotalEl) lineTotalEl.textContent = money(lineTotal);
+            });
+
+            const taxRate = clampPercent(document.getElementById('sale-tax')?.value);
+            const discountRate = clampPercent(document.getElementById('sale-discount')?.value);
+            const paid = parseAmount(document.getElementById('sale-amount-paid')?.value);
+            const taxAmount = subtotal * (taxRate / 100);
+            const discountAmount = subtotal * (discountRate / 100);
+            const grandTotal = Math.max(subtotal + taxAmount - discountAmount, 0);
+            const change = Math.max(paid - grandTotal, 0);
+
+            document.getElementById('sale-subtotal').textContent = money(subtotal);
+            document.getElementById('sale-grand-total').textContent = money(grandTotal);
+            document.getElementById('sale-change').textContent = money(change);
+        }
+
+        const initializeProductPicker = (container) => {
+            const productSelect = container.querySelector('[data-product-select]');
+            if (!productSelect) return;
+
+            const updateProductSummary = () => {
+                const summary = container.querySelector('[data-product-summary]');
+                const selectedOption = productSelect.selectedOptions[0];
+                const selectedProduct = productChoices.find((choice) => choice.value === productSelect.value);
+
+                if (productSelect.value && summary) {
+                    const category = selectedProduct?.category || selectedOption?.parentElement?.label || 'Products';
+                    const price = selectedProduct ? money(selectedProduct.price) : '';
+                    const barcode = selectedProduct?.barcode ? ` | ${selectedProduct.barcode}` : '';
+                    summary.replaceChildren();
+                    const name = document.createElement('strong');
+                    name.textContent = selectedOption.textContent;
+                    const meta = document.createElement('span');
+                    meta.className = 'product-meta';
+                    meta.textContent = `${category}${price ? ' | ' + price : ''}${barcode}`;
+                    summary.append(name, meta);
+                    delete container.dataset.emptyRow;
+                } else if (summary) {
+                    summary.replaceChildren();
+                    const name = document.createElement('strong');
+                    name.textContent = 'No product selected';
+                    const meta = document.createElement('span');
+                    meta.className = 'product-meta';
+                    meta.textContent = 'Use the product list or search on the left.';
+                    summary.append(name, meta);
+                    container.dataset.emptyRow = 'true';
+                }
+                updatePurchasedEmptyState();
+            };
+
+            const updateStockDisplay = () => {
+                const stockDisplay = container.querySelector('[data-stock-display]');
+                if (!stockDisplay) return;
+                const stocks = JSON.parse(productSelect.dataset.stocks || '{}');
+                const stock = stocks[productSelect.value];
+                if (productSelect.value && stock !== undefined) {
+                    stockDisplay.innerHTML = stock === 0
+                        ? '<span class="text-danger fw-semibold">Out of stock</span>'
+                        : stock <= 5
+                        ? `<span class="text-warning fw-semibold">${stock} available - low</span>`
+                        : `<span class="text-success fw-semibold">${stock} available</span>`;
+                } else {
+                    stockDisplay.innerHTML = '';
+                }
+            };
+
+            const updateQuantityMax = () => {
+                const qtyInput = container.querySelector('input[type="number"]');
+                const stocks = JSON.parse(productSelect.dataset.stocks || '{}');
+                const stock = stocks[productSelect.value];
+                if (qtyInput && stock !== undefined) {
+                    qtyInput.max = stock;
+                    qtyInput.title = `Maximum available: ${stock}`;
+                } else if (qtyInput) {
+                    qtyInput.removeAttribute('max');
+                    qtyInput.removeAttribute('title');
+                }
+            };
+
+            productSelect.addEventListener('change', () => {
+                updateProductSummary();
+                updateStockDisplay();
+                updateQuantityMax();
+                updateTotals();
+            });
+            updateProductSummary();
+            updateStockDisplay();
+            updateQuantityMax();
+        };
+
+        function createSaleItemRow() {
+            if (!saleItemForms || !totalFormsInput || !emptySaleItemTemplate) return null;
+            const formIndex = Number(totalFormsInput.value);
+            const nextFormMarkup = emptySaleItemTemplate.innerHTML.replace(/__prefix__/g, formIndex);
+            saleItemForms.insertAdjacentHTML('beforeend', nextFormMarkup.trim());
+            const newCard = saleItemForms.lastElementChild;
+            initializeProductPicker(newCard);
+            totalFormsInput.value = String(formIndex + 1);
+            renumberRows();
+            return newCard;
+        }
+
+        function addProductToPurchaseList(productId) {
+            const product = productChoices.find((choice) => choice.value === String(productId));
+            if (!product || product.stock <= 0) return;
+
+            const matchingCard = Array.from(document.querySelectorAll('.sale-item-card')).find((card) => {
+                const select = card.querySelector('[data-product-select]');
+                return !rowIsDeleted(card) && select && select.value === String(productId);
+            });
+
+            if (matchingCard) {
+                const qtyInput = matchingCard.querySelector('input[type="number"]');
+                const nextQty = Math.min(Number(qtyInput.value || 0) + 1, product.stock);
+                qtyInput.value = String(nextQty);
+                qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
+
+            let targetCard = Array.from(document.querySelectorAll('.sale-item-card')).find((card) => {
+                const select = card.querySelector('[data-product-select]');
+                return !rowIsDeleted(card) && select && !select.value;
+            });
+
+            if (!targetCard) targetCard = createSaleItemRow();
+            if (!targetCard) return;
+
+            const select = targetCard.querySelector('[data-product-select]');
+            const qtyInput = targetCard.querySelector('input[type="number"]');
+            select.value = String(productId);
+            qtyInput.value = '1';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function renderSearchResults() {
+            if (!productSearchInput || !searchedProductList) return;
+            const query = productSearchInput.value.trim().toLowerCase();
+            searchedProductList.replaceChildren();
+
+            if (!query) return;
+
+            productChoices
+                .filter((product) => {
+                    return product.label.toLowerCase().includes(query)
+                        || product.category.toLowerCase().includes(query)
+                        || product.barcode.toLowerCase().includes(query);
+                })
+                .slice(0, 8)
+                .forEach((product) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'quick-product';
+                    button.dataset.addProduct = product.value;
+                    button.dataset.searchProduct = 'true';
+                    button.disabled = product.stock <= 0;
+                    const copy = document.createElement('span');
+                    const name = document.createElement('span');
+                    name.className = 'fw-semibold d-block';
+                    name.textContent = product.label;
+                    const meta = document.createElement('span');
+                    meta.className = 'product-meta';
+                    meta.textContent = `${product.category} | ${product.stock} in stock${product.barcode ? ' | ' + product.barcode : ''}`;
+                    const price = document.createElement('span');
+                    price.className = 'product-price';
+                    price.textContent = money(product.price);
+                    copy.append(name, meta);
+                    button.append(copy, price);
+                    searchedProductList.appendChild(button);
+                });
+        }
+
+        document.querySelectorAll('.sale-item-card').forEach(initializeProductPicker);
+        productChoices = getProductChoices();
+        renumberRows();
+        updateTotals();
+
+        document.addEventListener('click', e => {
+            const productButton = e.target.closest('[data-search-product]');
+            if (productButton) {
+                addProductToPurchaseList(productButton.dataset.addProduct);
+            }
+
+            if (e.target.closest('[data-remove-row]')) {
+                const card = e.target.closest('.sale-item-card');
+                const deleteCheckbox = card.querySelector('input[name$="-DELETE"]');
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    card.dataset.removing = 'true';
+                }
+                updatePurchasedEmptyState();
+                updateTotals();
+            }
+
+            if (e.target.closest('[data-remove-new-row]')) {
+                e.target.closest('.sale-item-card').remove();
+                renumberRows();
+                updatePurchasedEmptyState();
+                updateTotals();
+            }
+        });
+
+        document.addEventListener('dblclick', e => {
+            const productButton = e.target.closest('[data-quick-product]');
+            if (productButton) {
+                addProductToPurchaseList(productButton.dataset.addProduct);
+            }
+        });
+
+        if (productSearchInput) {
+            productSearchInput.addEventListener('input', renderSearchResults);
+        }
+
+        document.addEventListener('change', updateTotals);
+        document.addEventListener('input', updateTotals);
+    </script>
+{% endblock %}

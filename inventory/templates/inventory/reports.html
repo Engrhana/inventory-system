@@ -1,0 +1,310 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Reports | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="hero-copy-block">
+                    <p class="text-uppercase small fw-semibold mb-2 muted-copy hero-kicker">Reporting Snapshot</p>
+                    <h1 class="page-title mb-3">Review performance trends and inventory pressure points in one place.</h1>
+                    <p class="muted-copy mb-0 hero-summary">Filter the reporting window, scan the snapshot quickly, and export the same view without leaving the page.</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="dashboard-card h-100">
+                    <p class="small text-uppercase fw-semibold muted-copy mb-2">Export Actions</p>
+                    {% if can_export_reports %}
+                        <div class="d-grid gap-2">
+                            <a class="btn btn-dark admin-link" href="{% url 'export_reports_excel' %}?start_date={{ start_date|urlencode }}&end_date={{ end_date|urlencode }}">
+                                <i class="bi bi-file-earmark-spreadsheet me-2"></i>Export Excel
+                            </a>
+                            <a class="btn btn-outline-secondary admin-link" href="{% url 'export_reports_pdf' %}?start_date={{ start_date|urlencode }}&end_date={{ end_date|urlencode }}" target="_blank" rel="noopener noreferrer">
+                                <i class="bi bi-printer me-2"></i>Print / Save PDF
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="muted-copy mb-0">Export actions are available to admins and approved staff.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-card mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="start_date" class="form-label fw-semibold">Start date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+            </div>
+            <div class="col-md-4">
+                <label for="end_date" class="form-label fw-semibold">End date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-dark" data-no-loading>Apply</button>
+            </div>
+            <div class="col-md-2 d-grid">
+                <a class="btn btn-outline-secondary" href="{% url 'reports' %}">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-products">
+                <div class="metric-icon"><i class="bi bi-boxes"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Products</p>
+                <h2>{{ total_products }}</h2>
+                <p class="mb-0 opacity-75">Catalog items currently tracked.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-sales">
+                <div class="metric-icon"><i class="bi bi-cart-check"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Sale Items</p>
+                <h2>{{ total_sales }}</h2>
+                <p class="mb-0 opacity-75">Line items contributing to recorded revenue.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-revenue">
+                <div class="metric-icon"><i class="bi bi-cash-stack"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Revenue</p>
+                <h2>PHP {{ total_revenue|floatformat:2 }}</h2>
+                <p class="mb-0 opacity-75">Gross subtotal across all sale items.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-stock">
+                <div class="metric-icon"><i class="bi bi-exclamation-triangle"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Low Stock</p>
+                <h2>{{ low_stock_count }}</h2>
+                <p class="mb-0 opacity-75">Products needing replenishment soon.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="dashboard-card h-100">
+                <div class="mb-4">
+                    <h5 class="section-heading mb-1"><i class="bi bi-graph-up-arrow me-2"></i>Revenue Trend</h5>
+                    <p class="muted-copy mb-0">Monthly revenue history based on recorded sale items.</p>
+                </div>
+                {% if sales_series.monthly.labels %}
+                    <div class="chart-frame">
+                        <canvas id="reportsSalesChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-graph-up fs-3 d-block mb-2"></i>
+                        Revenue trend will appear once sales exist in the selected date range.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="dashboard-card h-100">
+                <div class="mb-4">
+                    <h5 class="section-heading mb-1"><i class="bi bi-pie-chart me-2"></i>Category Distribution</h5>
+                    <p class="muted-copy mb-0">Product count per category across the current catalog.</p>
+                </div>
+                {% if category_labels %}
+                    <div class="chart-frame chart-frame-sm">
+                        <canvas id="reportsCategoryChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-pie-chart fs-3 d-block mb-2"></i>
+                        Category distribution will appear once products and categories are added.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-4">
+        <div class="col-xl-6">
+            <div class="dashboard-card compact-card h-100">
+                <div class="mb-3">
+                    <h5 class="section-heading mb-1"><i class="bi bi-calendar3 me-2"></i>Recent Monthly Totals</h5>
+                    <p class="muted-copy mb-0">The latest monthly reporting snapshots derived from sales records.</p>
+                </div>
+                {% if monthly_snapshots %}
+                    <div class="stock-list">
+                        {% for snapshot in monthly_snapshots %}
+                            <div class="summary-row">
+                                <strong>{{ snapshot.label }}</strong>
+                                <span class="fw-semibold">PHP {{ snapshot.total|floatformat:2 }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-bar-chart fs-3 d-block mb-2"></i>
+                        Reporting totals will appear here once sales data is available.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="dashboard-card compact-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="section-heading mb-1"><i class="bi bi-shield-exclamation me-2"></i>Low Stock Watchlist</h5>
+                        <p class="muted-copy mb-0">A reporting-friendly view of products near the stock threshold.</p>
+                    </div>
+                    <span class="status-chip">{{ low_stock_count }} alerts</span>
+                </div>
+                {% if low_stock_products %}
+                    <div class="stock-list">
+                        {% for product in low_stock_products %}
+                            <div class="stock-row">
+                                <div>
+                                    <strong>{{ product.name }}</strong>
+                                    <div class="small muted-copy">{{ product.category.name }}</div>
+                                </div>
+                                <div class="text-end">
+                                    {% if product.stock_quantity == 0 %}
+                                        <div><span class="status-chip danger-chip"><i class="bi bi-x-circle"></i> Out of Stock</span></div>
+                                    {% elif product.is_low_stock %}
+                                        <div><span class="status-chip" style="background:var(--warning-soft);color:#9a6700;"><i class="bi bi-exclamation-circle"></i> Low Stock</span></div>
+                                    {% else %}
+                                        <div><span class="status-chip" style="background:var(--accent-soft);color:#0f5f58;"><i class="bi bi-check-circle"></i> Healthy</span></div>
+                                    {% endif %}
+                                    <span class="stock-pill mt-2 d-inline-block">{{ product.stock_quantity }} / {{ product.reorder_threshold }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
+                        No products are currently flagged for low stock.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card mt-4">
+        <h5 class="section-heading mb-3"><i class="bi bi-trophy me-2"></i>Top 5 Products by Revenue</h5>
+        {% if top_products %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Units Sold</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in top_products %}
+                            <tr>
+                                <td class="muted-copy">{{ forloop.counter }}</td>
+                                <td class="fw-semibold">{{ item.product__name }}</td>
+                                <td>{{ item.product__category__name }}</td>
+                                <td>{{ item.total_qty }}</td>
+                                <td>PHP {{ item.total_revenue|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-trophy fs-3 d-block mb-2"></i>
+                No sales data in the selected date range.
+            </div>
+        {% endif %}
+    </div>
+
+    {{ sales_series|json_script:"reports-sales-series-data" }}
+    {{ category_labels|json_script:"reports-category-labels-data" }}
+    {{ category_counts|json_script:"reports-category-counts-data" }}
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const reportsSalesSeries = JSON.parse(document.getElementById('reports-sales-series-data').textContent);
+        const reportsCategoryLabels = JSON.parse(document.getElementById('reports-category-labels-data').textContent);
+        const reportsCategoryCounts = JSON.parse(document.getElementById('reports-category-counts-data').textContent);
+        const reportsSalesChartCanvas = document.getElementById('reportsSalesChart');
+        if (reportsSalesChartCanvas) {
+            new Chart(reportsSalesChartCanvas, {
+                type: 'line',
+                data: {
+                    labels: reportsSalesSeries.monthly.labels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: reportsSalesSeries.monthly.totals,
+                        borderColor: '#0f766e',
+                        backgroundColor: 'rgba(15, 118, 110, 0.12)',
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `PHP ${Number(context.raw).toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => `PHP ${value}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const reportsCategoryChartCanvas = document.getElementById('reportsCategoryChart');
+        if (reportsCategoryChartCanvas) {
+            new Chart(reportsCategoryChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: reportsCategoryLabels,
+                    datasets: [{
+                        data: reportsCategoryCounts,
+                        backgroundColor: ['#153a73', '#0f766e', '#f59e0b', '#d946ef', '#2563eb', '#14b8a6'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 18
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+{% endblock %}

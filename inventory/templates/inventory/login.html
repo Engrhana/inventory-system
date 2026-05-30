@@ -1,0 +1,40 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Login | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="auth-shell">
+        <div class="dashboard-card auth-card">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <span class="brand-mark"><i class="bi bi-box-seam"></i></span>
+                <div>
+                    <p class="text-uppercase small fw-semibold mb-1 muted-copy hero-kicker">Ethan's Variety Store</p>
+                    <h1 class="page-title mb-0">Staff Login</h1>
+                </div>
+            </div>
+            <p class="text-uppercase small fw-semibold mb-2 muted-copy hero-kicker">Secure Access</p>
+            <h2 class="h4 mb-3">Sign in to continue</h2>
+            <p class="muted-copy mb-4">Sign in to Ethan's Variety Store to open the correct dashboard for your role and keep store operations moving.</p>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}{{ form.username.errors }}{% endif %}
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}{{ form.password.errors }}{% endif %}
+                </div>
+                <button type="submit" class="btn btn-dark w-100 py-2">Login</button>
+            </form>
+
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mt-4">
+                <a class="text-decoration-none" href="{% url 'forgot_password' %}">Forgot Password?</a>
+                <a class="btn btn-outline-secondary admin-link" href="{% url 'register' %}">Create Account</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

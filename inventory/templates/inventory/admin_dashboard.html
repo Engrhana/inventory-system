@@ -1,0 +1,206 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Admin Dashboard | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="hero-copy-block">
+                    <p class="text-uppercase small fw-semibold mb-2 muted-copy hero-kicker">Ethan's Variety Store Admin Control</p>
+                    <h1 class="page-title mb-3">Review account requests and manage user roles.</h1>
+                    <p class="muted-copy mb-0 hero-summary">Approve or reject new access requests, promote users to staff, and monitor who can work inside Ethan's Variety Store.</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="dashboard-card h-100">
+                    <div class="summary-row mb-2">
+                        <strong>Pending Requests</strong>
+                        <span class="status-chip">{{ pending_requests|length }}</span>
+                    </div>
+                    <div class="summary-row mb-2">
+                        <strong>Active Users</strong>
+                        <span class="status-chip">{{ all_users|length }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <strong>Rejected Requests</strong>
+                        <span class="status-chip">{{ rejected_requests|length }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="dashboard-card">
+                <div class="mb-3">
+                    <h5 class="section-heading mb-1"><i class="bi bi-person-plus me-2"></i>Pending Requests</h5>
+                    <p class="muted-copy mb-0">Approve requests to create a read-only user account, or reject them directly from this table.</p>
+                </div>
+                {% if pending_requests %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Date Requested</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for account_request in pending_requests %}
+                                    <tr>
+                                        <td>{{ account_request.username }}</td>
+                                        <td>{{ account_request.email }}</td>
+                                        <td>{{ account_request.created_at|date:"M d, Y H:i" }}</td>
+                                        <td class="text-end">
+                                            <div class="action-row justify-content-end">
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="approve_request">
+                                                    <input type="hidden" name="request_id" value="{{ account_request.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-dark">Approve</button>
+                                                </form>
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="reject_request">
+                                                    <input type="hidden" name="request_id" value="{{ account_request.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No pending requests right now.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="dashboard-card">
+                <div class="mb-3">
+                    <h5 class="section-heading mb-1"><i class="bi bi-people me-2"></i>All Users</h5>
+                    <p class="muted-copy mb-0">Promote approved users to staff, demote staff back to users, or deactivate accounts when needed.</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Date Joined</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for managed_user in all_users %}
+                                <tr>
+                                    <td>{{ managed_user.username }}</td>
+                                    <td>{{ managed_user.email|default:"-" }}</td>
+                                    <td>
+                                        {% if managed_user.is_superuser %}
+                                            Admin
+                                        {% elif managed_user.is_staff %}
+                                            Staff
+                                        {% else %}
+                                            User
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ managed_user.date_joined|date:"M d, Y H:i" }}</td>
+                                    <td>
+                                        {% if managed_user.is_active %}
+                                            <span class="status-chip"><i class="bi bi-check-circle"></i>Active</span>
+                                        {% else %}
+                                            <span class="status-chip danger-chip"><i class="bi bi-slash-circle"></i>Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="action-row justify-content-end">
+                                            {% if not managed_user.is_superuser and not managed_user.is_staff %}
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="promote_staff">
+                                                    <input type="hidden" name="user_id" value="{{ managed_user.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-dark">Promote to Staff</button>
+                                                </form>
+                                            {% endif %}
+                                            {% if managed_user.is_staff and not managed_user.is_superuser %}
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="demote_user">
+                                                    <input type="hidden" name="user_id" value="{{ managed_user.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Demote to User</button>
+                                                </form>
+                                            {% endif %}
+                                            {% if not managed_user.is_superuser and managed_user.is_active %}
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="deactivate_user">
+                                                    <input type="hidden" name="user_id" value="{{ managed_user.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deactivate {{ managed_user.username }}? They will immediately lose access to the system.');">Deactivate</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 muted-copy">No users have been created yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="dashboard-card">
+                <div class="mb-3">
+                    <h5 class="section-heading mb-1"><i class="bi bi-person-x me-2"></i>Rejected Requests</h5>
+                    <p class="muted-copy mb-0">Past rejections stay visible here for audit context.</p>
+                </div>
+                {% if rejected_requests %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Date Requested</th>
+                                    <th>Date Rejected</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for account_request in rejected_requests %}
+                                    <tr>
+                                        <td>{{ account_request.username }}</td>
+                                        <td>{{ account_request.email }}</td>
+                                        <td>{{ account_request.created_at|date:"M d, Y H:i" }}</td>
+                                        <td>{{ account_request.reviewed_at|date:"M d, Y H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-check2-all fs-3 d-block mb-2"></i>
+                        No rejected requests yet.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

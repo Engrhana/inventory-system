@@ -1,0 +1,27 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Delete {{ object_name }} | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="dashboard-card delete-card">
+        <p class="text-uppercase small fw-semibold mb-2 muted-copy">Confirm Delete</p>
+        <h1 class="page-title mb-3">Delete {{ object_name }}?</h1>
+        <p class="muted-copy">{{ warning_text }}</p>
+
+        {% if error_text %}
+            <div class="alert alert-warning" role="alert">{{ error_text }}</div>
+        {% endif %}
+
+        {% if can_delete %}
+            <form method="post" class="action-row">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Delete</button>
+                <a class="btn btn-outline-secondary" href="{% url cancel_url %}">Cancel</a>
+            </form>
+        {% else %}
+            <div class="action-row">
+                <a class="btn btn-outline-secondary" href="{% url cancel_url %}">Back</a>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

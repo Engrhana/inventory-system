@@ -1,0 +1,151 @@
+{% extends "inventory/base.html" %}
+{% load tz %}
+
+{% block title %}Receipt #{{ sale.id }} | Ethan's Variety Store{% endblock %}
+
+{% block extra_head %}
+    <style>
+        .receipt-shell {
+            max-width: 44rem;
+            margin: 0 auto;
+        }
+
+        .receipt-card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+        }
+
+        .receipt-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem 1.5rem;
+            padding: 1rem;
+            border: 1px solid var(--line);
+            border-radius: 0.75rem;
+            background: #f8fafc;
+        }
+
+        .receipt-total {
+            border-top: 2px solid var(--line);
+            padding-top: 1rem;
+        }
+
+        @media print {
+            .topbar,
+            .site-footer,
+            .receipt-actions,
+            .toast-container {
+                display: none !important;
+            }
+
+            body {
+                background: #fff !important;
+            }
+
+            .app-shell {
+                padding: 0 !important;
+                animation: none !important;
+            }
+
+            .receipt-card {
+                border: 0;
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="receipt-shell">
+        <div class="receipt-actions action-row mb-3">
+            <button type="button" class="btn btn-dark" onclick="window.print()" data-no-loading>
+                <i class="bi bi-printer me-2"></i>Print Receipt
+            </button>
+            <a class="btn btn-outline-secondary" href="{% url 'sales_list' %}">Back to Sales</a>
+        </div>
+
+        <div class="receipt-card">
+            <div class="text-center mb-4">
+                <div class="brand-mark mx-auto mb-3"><i class="bi bi-box-seam"></i></div>
+                <h1 class="section-heading mb-1">Ethan's Variety Store</h1>
+                <p class="muted-copy mb-0">Official Sale Receipt</p>
+            </div>
+
+            <div class="receipt-meta mb-4">
+                <div>
+                    <div class="small muted-copy">Receipt No.</div>
+                    <strong>#{{ sale.id }}</strong>
+                </div>
+                <div>
+                    <div class="small muted-copy">Date</div>
+                    <strong>{{ sale.date|localtime|date:"d M Y H:i" }} PHT</strong>
+                </div>
+                <div>
+                    <div class="small muted-copy">Cashier</div>
+                    <strong>{{ sale.user.username|default:"Deleted User" }}</strong>
+                </div>
+                <div>
+                    <div class="small muted-copy">Items</div>
+                    <strong>{{ sale.items.count }}</strong>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sale.items.all %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.product.name }}</strong>
+                                    <div class="small muted-copy">{{ item.product.category.name }}</div>
+                                </td>
+                                <td class="text-center">{{ item.quantity }}</td>
+                                <td class="text-end">PHP {{ item.subtotal|floatformat:2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="receipt-total">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold">Total Amount</span>
+                    <strong>PHP {{ total_amount|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Tax ({{ sale.tax_rate|floatformat:2 }}%)</span>
+                    <strong>PHP {{ sale.tax_amount|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Discount ({{ sale.discount_rate|floatformat:2 }}%)</span>
+                    <strong>PHP {{ sale.discount_amount|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center fs-5 mb-2">
+                    <span class="fw-bold">Grand Total</span>
+                    <strong>PHP {{ sale.grand_total|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Amount Pay</span>
+                    <strong>PHP {{ sale.amount_paid|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Change</span>
+                    <strong>PHP {{ sale.change_amount|floatformat:2 }}</strong>
+                </div>
+            </div>
+
+            <p class="text-center muted-copy small mt-4 mb-0">Thank you for shopping with us.</p>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,304 @@
+{% extends "inventory/base.html" %}
+{% load tz %}
+
+{% block title %}Staff Dashboard | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="hero-copy-block">
+                    <p class="text-uppercase small fw-semibold mb-2 muted-copy hero-kicker">Ethan's Variety Store Staff Workspace</p>
+                    <h1 class="hero-title mb-3">Manage stock, sales, and exports from one focused workspace.</h1>
+                    <p class="muted-copy mb-0 hero-summary">You have staff-level access to Ethan's Variety Store, so inventory editing and report exports are enabled across the system.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="action-row hero-actions justify-content-lg-end">
+                    {% if show_admin_tools_link %}
+                        <a class="btn btn-outline-secondary admin-link px-4 py-2" href="{% url 'admin_dashboard' %}">
+                            <i class="bi bi-people me-2"></i>Manage Users
+                        </a>
+                    {% endif %}
+                    <a class="btn btn-outline-secondary admin-link px-4 py-2" href="{% url 'inventory_list' %}">
+                        <i class="bi bi-box-seam me-2"></i>Manage Inventory
+                    </a>
+                    <a class="btn btn-dark admin-link px-4 py-2" href="{% url 'reports' %}">
+                        <i class="bi bi-file-earmark-arrow-down me-2"></i>Open Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-products">
+                <div class="metric-icon"><i class="bi bi-boxes"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Products</p>
+                <h2 data-counter="{{ total_products }}">{{ total_products }}</h2>
+                <p class="mb-0 opacity-75">Active catalog items available to sell.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-sales">
+                <div class="metric-icon"><i class="bi bi-cart-check"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Sales</p>
+                <h2 data-counter="{{ total_sales }}">{{ total_sales }}</h2>
+                <p class="mb-0 opacity-75">Individual sale items processed by the system.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-revenue">
+                <div class="metric-icon"><i class="bi bi-cash-stack"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Revenue</p>
+                <h2 data-counter="{{ total_revenue|floatformat:2 }}" data-counter-prefix="PHP " data-counter-decimal="2">PHP {{ total_revenue|floatformat:2 }}</h2>
+                <p class="mb-0 opacity-75">Recognized revenue from all recorded sale items.</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="metric-card metric-stock">
+                <div class="metric-icon"><i class="bi bi-exclamation-triangle"></i></div>
+                <p class="text-uppercase small fw-semibold mb-2 opacity-75">Low Stock</p>
+                <h2 data-counter="{{ low_stock_count }}">{{ low_stock_count }}</h2>
+                <p class="mb-0 opacity-75">Products at or below the current alert threshold.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-xl-8">
+            <div class="dashboard-card h-100">
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+                    <div>
+                        <h5 class="section-heading mb-1"><i class="bi bi-bar-chart-line me-2"></i>Sales Overview</h5>
+                        <p class="muted-copy mb-0 section-copy">Track daily, weekly, and monthly revenue patterns while you manage day-to-day operations.</p>
+                    </div>
+                    <div class="btn-group chart-toggle" role="group" aria-label="Sales time range">
+                        <button type="button" class="btn active" data-range="daily">Daily</button>
+                        <button type="button" class="btn" data-range="weekly">Weekly</button>
+                        <button type="button" class="btn" data-range="monthly">Monthly</button>
+                    </div>
+                </div>
+                {% if sales_series.daily.labels or sales_series.weekly.labels or sales_series.monthly.labels %}
+                    <div class="chart-frame">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-bar-chart fs-3 d-block mb-2"></i>
+                        Sales charts will appear once transactions are recorded.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="dashboard-card h-100">
+                <div class="mb-4">
+                    <h5 class="section-heading mb-1"><i class="bi bi-pie-chart me-2"></i>Category Mix</h5>
+                    <p class="muted-copy mb-0">Quick view of how your catalog is distributed by category.</p>
+                </div>
+                {% if category_labels %}
+                    <div class="chart-frame chart-frame-sm">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-pie-chart fs-3 d-block mb-2"></i>
+                        Category distribution will appear once products are added.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-xl-8">
+            <div class="dashboard-card h-100">
+                <div class="mb-3">
+                    <h5 class="section-heading mb-1"><i class="bi bi-clock-history me-2"></i>Recent Sales</h5>
+                    <p class="muted-copy mb-0">Latest transactions captured by the system.</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in recent_sales %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.product.name }}</strong>
+                                        <div class="small muted-copy">{{ item.product.category.name }}</div>
+                                    </td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>PHP {{ item.subtotal|floatformat:2 }}</td>
+                                    <td>{{ item.sale.date|localtime|date:"d M Y H:i" }} PHT</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 muted-copy">No recent sales yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="dashboard-card h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="section-heading mb-1"><i class="bi bi-shield-exclamation me-2"></i>Restock Watch</h5>
+                        <p class="muted-copy mb-0">Items needing attention before inventory runs low.</p>
+                    </div>
+                    <span class="status-chip">{{ low_stock_count }} alerts</span>
+                </div>
+                {% if low_stock_products %}
+                    <div class="stock-list">
+                        {% for product in low_stock_products %}
+                            <div class="stock-row">
+                                <div>
+                                    <strong>{{ product.name }}</strong>
+                                    <div class="small muted-copy">{{ product.category.name }}</div>
+                                </div>
+                                <div class="text-end">
+                                    {% if product.stock_quantity == 0 %}
+                                        <div><span class="status-chip danger-chip"><i class="bi bi-x-circle"></i> Out of Stock</span></div>
+                                    {% elif product.is_low_stock %}
+                                        <div><span class="status-chip" style="background:var(--warning-soft);color:#9a6700;"><i class="bi bi-exclamation-circle"></i> Low Stock</span></div>
+                                    {% else %}
+                                        <div><span class="status-chip" style="background:var(--accent-soft);color:#0f5f58;"><i class="bi bi-check-circle"></i> Healthy</span></div>
+                                    {% endif %}
+                                    <span class="stock-pill mt-2 d-inline-block">{{ product.stock_quantity }} / {{ product.reorder_threshold }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
+                        All products are currently above the low-stock threshold.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {{ sales_series|json_script:"sales-series-data" }}
+    {{ category_labels|json_script:"category-labels-data" }}
+    {{ category_counts|json_script:"category-counts-data" }}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        (function animateCounters() {
+            document.querySelectorAll('[data-counter]').forEach(el => {
+                const target = parseFloat(el.dataset.counter.replace(/,/g, ''));
+                const prefix = el.dataset.counterPrefix || '';
+                const decimals = parseInt(el.dataset.counterDecimal || '0');
+                const duration = 950;
+                const start = performance.now();
+                function step(now) {
+                    const p = Math.min((now - start) / duration, 1);
+                    const ease = 1 - Math.pow(1 - p, 3);
+                    el.textContent = prefix + (target * ease).toFixed(decimals);
+                    if (p < 1) requestAnimationFrame(step);
+                    else el.textContent = prefix + target.toFixed(decimals);
+                }
+                requestAnimationFrame(step);
+            });
+        })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const salesSeries = JSON.parse(document.getElementById('sales-series-data').textContent);
+        const categoryLabels = JSON.parse(document.getElementById('category-labels-data').textContent);
+        const categoryCounts = JSON.parse(document.getElementById('category-counts-data').textContent);
+        const salesChartCanvas = document.getElementById('salesChart');
+        if (salesChartCanvas) {
+            const salesChart = new Chart(salesChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: salesSeries.daily.labels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: salesSeries.daily.totals,
+                        backgroundColor: [
+                            'rgba(21, 58, 115, 0.92)',
+                            'rgba(31, 83, 160, 0.92)',
+                            'rgba(42, 107, 201, 0.92)',
+                            'rgba(67, 138, 225, 0.92)',
+                            'rgba(114, 175, 238, 0.92)'
+                        ],
+                        borderRadius: 12,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `PHP ${Number(context.raw).toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => `PHP ${value}`
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.querySelectorAll('[data-range]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const range = button.dataset.range;
+                    document.querySelectorAll('[data-range]').forEach((item) => item.classList.toggle('active', item === button));
+                    salesChart.data.labels = salesSeries[range].labels;
+                    salesChart.data.datasets[0].data = salesSeries[range].totals;
+                    salesChart.update();
+                });
+            });
+        }
+
+        const categoryChartCanvas = document.getElementById('categoryChart');
+        if (categoryChartCanvas) {
+            new Chart(categoryChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryCounts,
+                        backgroundColor: ['#153a73', '#0f766e', '#f59e0b', '#d946ef', '#2563eb', '#14b8a6'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 18
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+{% endblock %}

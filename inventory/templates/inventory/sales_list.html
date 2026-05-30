@@ -1,0 +1,186 @@
+{% extends "inventory/base.html" %}
+{% load tz %}
+
+{% block title %}Sales | Ethan's Variety Store{% endblock %}
+
+{% block extra_head %}
+    <style>
+        .transactions-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .transaction-card {
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            background: #fff;
+            padding: 1rem;
+        }
+
+        .transaction-head {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: start;
+            padding-bottom: 0.9rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .transaction-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .transaction-total {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        @media (max-width: 767.98px) {
+            .transaction-head {
+                grid-template-columns: 1fr;
+            }
+
+            .transaction-actions {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="hero-copy-block">
+                    <p class="text-uppercase small fw-semibold mb-2 muted-copy hero-kicker">Ethan's Variety Store Sales Activity</p>
+                    <h1 class="page-title mb-3">Sales transactions</h1>
+                    <p class="muted-copy mb-0 hero-summary">Review recorded sales, print receipts, and inspect sold items without opening Django admin.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                {% if can_manage_inventory %}
+                    <div class="action-row hero-actions justify-content-lg-end">
+                        <a class="btn btn-dark admin-link px-4 py-2" href="{% url 'sale_create' %}">
+                            <i class="bi bi-plus-circle me-2"></i>Record Sale
+                        </a>
+                    </div>
+                {% else %}
+                    <span class="status-chip"><i class="bi bi-eye"></i>Read-only access</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-card mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="start_date" class="form-label fw-semibold">Start date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label for="end_date" class="form-label fw-semibold">End date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+            </div>
+            <div class="col-md-2">
+                <label for="staff" class="form-label fw-semibold">Staff</label>
+                <select class="form-select" id="staff" name="staff">
+                    <option value="">All</option>
+                    {% for member in staff_users %}
+                        <option value="{{ member.username }}" {% if staff_query == member.username %}selected{% endif %}>
+                            {{ member.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-dark" data-no-loading>Apply</button>
+            </div>
+            <div class="col-md-2 d-grid">
+                <a class="btn btn-outline-secondary" href="{% url 'sales_list' %}">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+                <h5 class="section-heading mb-1">
+                    <i class="bi bi-receipt me-2"></i>Transactions
+                </h5>
+                <p class="muted-copy mb-0">
+                    {{ sales_total_count }} sale{{ sales_total_count|pluralize }}
+                    {% if start_date or end_date %} in selected period{% endif %}
+                </p>
+            </div>
+            <div class="text-end">
+                <div class="fw-bold fs-5">PHP {{ sales_total_revenue|floatformat:2 }}</div>
+                <div class="small muted-copy">Total revenue</div>
+            </div>
+        </div>
+
+        {% if sales %}
+            <div class="transactions-list">
+                {% for sale in sales %}
+                    <article class="transaction-card">
+                        <div class="transaction-head">
+                            <div>
+                                <h2 class="section-heading mb-1">Sale #{{ sale.id }}</h2>
+                                <div class="small muted-copy">
+                                    {{ sale.date|localtime|date:"d M Y H:i" }} PHT
+                                    by {{ sale.user.username|default:"Deleted User" }}
+                                </div>
+                                <div class="transaction-total mt-2">PHP {{ sale.total_amount|default:0|floatformat:2 }}</div>
+                                <div class="small muted-copy">{{ sale.item_count }} item{{ sale.item_count|pluralize }}</div>
+                            </div>
+                            <div class="transaction-actions">
+                                <a class="btn btn-sm btn-dark" href="{% url 'sale_receipt' sale.pk %}">
+                                    <i class="bi bi-printer me-1"></i>Receipt
+                                </a>
+                                {% if can_manage_inventory %}
+                                    <a class="btn btn-sm btn-outline-dark" href="{% url 'sale_update' sale.pk %}">
+                                        <i class="bi bi-pencil-square me-1"></i>Edit
+                                    </a>
+                                    <a class="btn btn-sm btn-outline-danger" href="{% url 'sale_delete' sale.pk %}" onclick="return confirm('Delete Sale #{{ sale.id }}? This will restore stock quantities.');">
+                                        <i class="bi bi-trash me-1"></i>Delete
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th class="text-center">Qty</th>
+                                        <th class="text-end">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in sale.items.all %}
+                                        <tr>
+                                            <td class="fw-semibold">{{ item.product.name }}</td>
+                                            <td>{{ item.product.category.name }}</td>
+                                            <td class="text-center">{{ item.quantity }}</td>
+                                            <td class="text-end">PHP {{ item.subtotal|floatformat:2 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+                No sales matched the selected filters.
+                <span class="visually-hidden">No sales matched the selected date range.</span>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}{{ form_title }} | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <p class="text-uppercase small fw-semibold mb-2 muted-copy">Stock-In</p>
+        <h1 class="page-title mb-3">{{ form_title }}</h1>
+        <p class="muted-copy mb-0">{{ form_intro }}</p>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="stock-row mb-4">
+            <div>
+                <strong>{{ product.name }}</strong>
+                <div class="small muted-copy">{{ product.category.name }}</div>
+            </div>
+            <span class="stock-pill">{{ product.stock_quantity }} on hand</span>
+        </div>
+
+        <form method="post" class="inline-form-grid">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-0">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div>
+                <label class="form-label" for="{{ form.quantity.id_for_label }}">Quantity received</label>
+                {{ form.quantity }}
+                {% if form.quantity.errors %}<div class="text-danger small mt-1">{{ form.quantity.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label class="form-label" for="{{ form.notes.id_for_label }}">Notes <span class="muted-copy fw-normal">(optional)</span></label>
+                {{ form.notes }}
+                {% if form.notes.errors %}<div class="text-danger small mt-1">{{ form.notes.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="action-row">
+                <button type="submit" class="btn btn-dark">{{ submit_label }}</button>
+                <a class="btn btn-outline-secondary" href="{% url 'inventory_list' %}">Cancel</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

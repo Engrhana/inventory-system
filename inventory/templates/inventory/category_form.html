@@ -1,0 +1,31 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}{{ form_title }} | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <p class="text-uppercase small fw-semibold mb-2 muted-copy">Category Management</p>
+        <h1 class="page-title mb-3">{{ form_title }}</h1>
+        <p class="muted-copy mb-0">{{ form_intro }}</p>
+    </div>
+
+    <div class="dashboard-card">
+        <form method="post" class="inline-form-grid">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-0">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div>
+                <label class="form-label" for="{{ form.name.id_for_label }}">Category name</label>
+                {{ form.name }}
+                {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="action-row">
+                <button type="submit" class="btn btn-dark">{{ submit_label }}</button>
+                <a class="btn btn-outline-secondary" href="{% url 'category_list' %}">Cancel</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

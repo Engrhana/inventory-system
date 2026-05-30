@@ -1,0 +1,169 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Inventory | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="hero-copy-block">
+                    <p class="text-uppercase small fw-semibold mb-2 muted-copy hero-kicker">Ethan's Variety Store Inventory</p>
+                    <h1 class="page-title mb-3">Browse products, catch stock risks, and manage inventory directly in the app.</h1>
+                    <p class="muted-copy mb-0 hero-summary">Update products faster with in-app controls that keep day-to-day inventory work consistent and easy to follow.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                {% if can_manage_inventory %}
+                    <div class="action-row hero-actions justify-content-lg-end">
+                        <a class="btn btn-outline-secondary admin-link px-4 py-2" href="{% url 'category_list' %}">
+                            <i class="bi bi-tags me-2"></i>Manage Categories
+                        </a>
+                        <a class="btn btn-dark admin-link px-4 py-2" href="{% url 'product_create' %}">
+                            <i class="bi bi-plus-circle me-2"></i>Add Product
+                        </a>
+                    </div>
+                {% else %}
+                    <span class="status-chip"><i class="bi bi-eye"></i>Read-only access</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-card mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label for="q" class="form-label fw-semibold">Search products</label>
+                <input type="text" class="form-control" id="q" name="q" value="{{ search_query }}" placeholder="Search by product name or barcode">
+            </div>
+            <div class="col-md-4">
+                <label for="category" class="form-label fw-semibold">Category</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="">All categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-dark" data-no-loading>Apply</button>
+            </div>
+            <div class="col-md-1 d-grid">
+                <a class="btn btn-outline-secondary" href="{% url 'inventory_list' %}">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="section-heading mb-1"><i class="bi bi-grid me-2"></i>Product Catalog</h5>
+                <p class="muted-copy mb-0">{{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }} matched the current filters across {{ categories|length }} categor{{ categories|length|pluralize:"y,ies" }}.</p>
+            </div>
+        </div>
+        {% if page_obj.object_list %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Barcode</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Threshold</th>
+                            <th>Status</th>
+                            {% if can_manage_inventory %}<th>Actions</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in page_obj %}
+                            <tr>
+                                <td class="fw-semibold">{{ product.name }}</td>
+                                <td>{{ product.barcode|default:"-" }}</td>
+                                <td>{{ product.category.name }}</td>
+                                <td>PHP {{ product.price|floatformat:2 }}</td>
+                                <td>{{ product.stock_quantity }}</td>
+                                <td>{{ product.reorder_threshold }}</td>
+                                <td>
+                                    {% if product.stock_quantity == 0 %}
+                                        <span class="status-chip danger-chip"><i class="bi bi-x-circle"></i> Out of Stock</span>
+                                    {% elif product.is_low_stock %}
+                                        <span class="status-chip" style="background:var(--warning-soft);color:#9a6700;">
+                                            <i class="bi bi-exclamation-circle"></i> Low Stock
+                                        </span>
+                                    {% else %}
+                                        <span class="status-chip" style="background:var(--accent-soft);color:#0f5f58;">
+                                            <i class="bi bi-check-circle"></i> Healthy
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                {% if can_manage_inventory %}
+                                    <td>
+                                        <div class="d-none d-lg-flex action-row">
+                                            <a class="btn btn-sm btn-outline-success" href="{% url 'product_restock' product.pk %}">Restock</a>
+                                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'product_stock_history' product.pk %}">History</a>
+                                            <a class="btn btn-sm btn-outline-dark" href="{% url 'product_update' product.pk %}">Edit</a>
+                                            <a class="btn btn-sm btn-outline-danger" href="{% url 'product_delete' product.pk %}">Delete</a>
+                                        </div>
+                                        <div class="d-lg-none">
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    Actions
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li><a class="dropdown-item" href="{% url 'product_restock' product.pk %}">Restock</a></li>
+                                                    <li><a class="dropdown-item" href="{% url 'product_stock_history' product.pk %}">History</a></li>
+                                                    <li><a class="dropdown-item" href="{% url 'product_update' product.pk %}">Edit</a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><a class="dropdown-item text-danger" href="{% url 'product_delete' product.pk %}">Delete</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-search fs-3 d-block mb-2"></i>
+                No products matched your filters. Try a different search or category.
+            </div>
+        {% endif %}
+
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="mt-4" aria-label="Inventory pagination">
+                <ul class="pagination justify-content-center gap-2 mb-0">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&category={{ selected_category|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num == 1 or num == page_obj.paginator.num_pages or num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                                <a class="page-link" href="?q={{ search_query|urlencode }}&category={{ selected_category|urlencode }}&page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&category={{ selected_category|urlencode }}&page={{ page_obj.next_page_number }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const categorySelect = document.getElementById('category');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function () {
+            this.closest('form').submit();
+        });
+    }
+</script>
+{% endblock %}

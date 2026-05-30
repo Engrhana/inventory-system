@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Ethan's Variety Store{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --surface: rgba(255, 255, 255, 0.92);
+            --ink: #10233f;
+            --muted: #6a7891;
+            --line: rgba(16, 35, 63, 0.08);
+            --accent-soft: #d9f5ef;
+            --warning-soft: #fff4d6;
+            --danger-soft: #fee2e2;
+            --shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 35%),
+                radial-gradient(circle at top right, rgba(37, 99, 235, 0.10), transparent 28%),
+                linear-gradient(180deg, #f9fbfd 0%, var(--bg) 100%);
+            color: var(--ink);
+        }
+
+        .topbar {
+            background: rgba(10, 19, 34, 0.92);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 14px 36px rgba(2, 6, 23, 0.18);
+        }
+
+        .brand-mark {
+            width: 2.5rem;
+            height: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.9rem;
+            background: linear-gradient(135deg, #34d399, #0f766e);
+            color: #fff;
+        }
+
+        .app-shell {
+            padding: 2rem 0 6rem;
+        }
+
+        .hero-card,
+        .dashboard-card,
+        .metric-card,
+        .filter-card {
+            border: 1px solid var(--line);
+            border-radius: 1.5rem;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+
+        .hero-card {
+            overflow: hidden;
+        }
+
+        .hero-copy-block {
+            max-width: 44rem;
+        }
+
+        .hero-kicker {
+            letter-spacing: 0.12em;
+        }
+
+        .hero-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 1.08;
+        }
+
+        .page-title {
+            font-size: clamp(1.8rem, 3vw, 2.5rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.12;
+        }
+
+        .muted-copy {
+            color: var(--muted);
+        }
+
+        .hero-summary {
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 38rem;
+        }
+
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            color: #fff;
+        }
+
+        .metric-card::after {
+            content: "";
+            position: absolute;
+            inset: auto -2rem -2rem auto;
+            width: 7rem;
+            height: 7rem;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .metric-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-card h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .metric-products {
+            background: linear-gradient(135deg, #153a73, #2d6cdf);
+        }
+
+        .metric-sales {
+            background: linear-gradient(135deg, #0f766e, #2cb67d);
+        }
+
+        .metric-revenue {
+            background: linear-gradient(135deg, #6d28d9, #2563eb);
+        }
+
+        .metric-stock {
+            background: linear-gradient(135deg, #b45309, #f59e0b);
+        }
+
+        .section-heading {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .chart-toggle .btn {
+            border-radius: 999px;
+            border-color: rgba(15, 118, 110, 0.18);
+            color: var(--muted);
+            background: #fff;
+        }
+
+        .chart-toggle .btn.active {
+            color: #fff;
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            border-color: transparent;
+        }
+
+        .table thead th {
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border-bottom-color: var(--line);
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+            border-color: var(--line);
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            background: var(--warning-soft);
+            color: #9a6700;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .danger-chip {
+            background: var(--danger-soft);
+            color: #b91c1c;
+        }
+
+        .stock-list {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .stock-row,
+        .sales-row,
+        .summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.9rem 1rem;
+            border-radius: 1rem;
+            background: #fff;
+            border: 1px solid var(--line);
+        }
+
+        .stock-pill {
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            background: rgba(245, 158, 11, 0.14);
+            color: #9a6700;
+            font-weight: 700;
+        }
+
+        .empty-state {
+            border-radius: 1.2rem;
+            padding: 1.2rem;
+            text-align: center;
+            background: var(--accent-soft);
+            color: #0f5f58;
+        }
+
+        .nav-link.active {
+            color: #fff !important;
+            font-weight: 600;
+        }
+
+        .pagination .page-link {
+            border-radius: 999px;
+            border: 0;
+            color: var(--ink);
+            box-shadow: none;
+        }
+
+        .pagination .active .page-link {
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+        }
+
+        .admin-link {
+            border-radius: 999px;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-actions {
+            justify-content: flex-start;
+        }
+
+        .inline-form-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+        }
+
+        .delete-card {
+            max-width: 42rem;
+            margin: 0 auto;
+        }
+
+        .auth-pill {
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 0.95rem;
+        }
+
+        .auth-role {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 0.5rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .chart-frame {
+            position: relative;
+            height: 320px;
+            min-height: 320px;
+        }
+
+        .chart-frame.chart-frame-sm {
+            height: 280px;
+            min-height: 280px;
+        }
+
+        .chart-frame canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .section-copy {
+            max-width: 42rem;
+        }
+
+        .compact-card {
+            padding: 1.25rem;
+        }
+
+        .auth-shell {
+            min-height: calc(100vh - 10rem);
+            display: grid;
+            place-items: center;
+        }
+
+        .auth-card {
+            width: min(34rem, 100%);
+        }
+
+        .site-footer {
+            background: rgba(10, 19, 34, 0.92);
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.85rem;
+        }
+
+        /* Subtle page fade-in on navigation */
+        @keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .app-shell {
+            animation: pageFadeIn 0.2s ease both;
+        }
+
+        /* Teal focus ring on all inputs */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #0f766e;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+            outline: none;
+        }
+
+        /* Button press micro-animation */
+        .btn {
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Table hover for sales list inner tables */
+        .table-hover tbody tr {
+            transition: background-color 0.12s ease;
+        }
+
+        /* Smooth toast slide-in */
+        .toast {
+            animation: pageFadeIn 0.18s ease both;
+        }
+
+        @media (max-width: 991.98px) {
+            .hero-actions {
+                margin-top: 0.25rem;
+            }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark topbar">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-3 fw-semibold" href="{{ current_dashboard_url }}">
+                <span class="brand-mark"><i class="bi bi-box-seam"></i></span>
+                Ethan's Variety Store
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#dashboardNav" aria-controls="dashboardNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="dashboardNav">
+                <ul class="navbar-nav ms-auto gap-lg-2">
+                    {% if request.user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.view_name == 'dashboard' or request.resolver_match.view_name == 'staff_dashboard' or request.resolver_match.view_name == 'admin_dashboard' and not is_admin_user %}active{% endif %}" href="{{ current_dashboard_url }}">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.view_name == 'inventory_list' %}active{% endif %}" href="{% url 'inventory_list' %}">Inventory{% if low_stock_count > 0 %} <span class="badge bg-danger ms-1">{{ low_stock_count }}</span>{% endif %}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.view_name == 'sales_list' %}active{% endif %}" href="{% url 'sales_list' %}">Sales</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.view_name == 'reports' %}active{% endif %}" href="{% url 'reports' %}">Reports</a></li>
+                        {% if is_admin_user %}
+                            <li class="nav-item"><a class="nav-link {% if request.resolver_match.view_name == 'admin_dashboard' %}active{% endif %}" href="{% url 'admin_dashboard' %}">Admin</a></li>
+                        {% endif %}
+                        <li class="nav-item d-flex align-items-center auth-pill px-lg-2">
+                            {{ request.user.username }}
+                            <span class="auth-role">{{ user_role_label }}</span>
+                        </li>
+                        <li class="nav-item">
+                            <form method="post" action="{% url 'logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="nav-link btn btn-link p-0 border-0" data-no-loading>Logout</button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Create Account</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container app-shell">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="site-footer py-3 text-center">
+        &copy; 2026 Ethan's Variety Store. All rights reserved.
+    </footer>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+        {% for message in messages %}
+            <div class="toast align-items-center text-white border-0 mb-2 {% if 'error' in message.tags %}bg-danger{% elif 'warning' in message.tags %}bg-warning text-dark{% elif 'success' in message.tags %}bg-success{% else %}bg-secondary{% endif %}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="4000">
+                <div class="d-flex">
+                    <div class="toast-body fw-semibold">{{ message }}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('.toast').forEach(el => new bootstrap.Toast(el).show());
+    </script>
+    <script>
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function () {
+                const btn = form.querySelector('button[type="submit"]:not([data-no-loading])');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

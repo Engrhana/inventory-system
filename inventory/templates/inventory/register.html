@@ -1,0 +1,44 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Register | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="auth-shell">
+        <div class="dashboard-card auth-card">
+            <p class="text-uppercase small fw-semibold mb-2 muted-copy hero-kicker">Account Request</p>
+            <h1 class="page-title mb-3">Create an account request</h1>
+            <p class="muted-copy mb-4">Your request goes to an Admin for approval first. Once approved, you can log in with the same username and password.</p>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}{{ form.username.errors }}{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}{{ form.email.errors }}{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}{{ form.password.errors }}{% endif %}
+                    {% if form.password.help_text %}<div class="small muted-copy mt-2">{{ form.password.help_text }}</div>{% endif %}
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" for="{{ form.confirm_password.id_for_label }}">Confirm Password</label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}{{ form.confirm_password.errors }}{% endif %}
+                </div>
+                <button type="submit" class="btn btn-dark w-100 py-2">Submit Request</button>
+            </form>
+
+            <div class="text-center mt-4">
+                <span class="muted-copy">Already have an account?</span>
+                <a class="text-decoration-none ms-1" href="{% url 'login' %}">Login</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

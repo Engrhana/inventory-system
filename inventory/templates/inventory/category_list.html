@@ -1,0 +1,61 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Categories | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <p class="text-uppercase small fw-semibold mb-2 muted-copy">Category Directory</p>
+                <h1 class="page-title mb-3">Manage the category structure behind your product catalog.</h1>
+                <p class="muted-copy mb-0">Clear categories keep filtering, reporting, and stock reviews easier to understand.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="action-row justify-content-lg-end">
+                    <a class="btn btn-outline-secondary admin-link px-4 py-2" href="{% url 'inventory_list' %}">
+                        <i class="bi bi-box-seam me-2"></i>Back to Inventory
+                    </a>
+                    <a class="btn btn-dark admin-link px-4 py-2" href="{% url 'category_create' %}">
+                        <i class="bi bi-plus-circle me-2"></i>Add Category
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="mb-3">
+            <h5 class="section-heading mb-1"><i class="bi bi-tags me-2"></i>Category Catalog</h5>
+            <p class="muted-copy mb-0">{{ categories|length }} categor{{ categories|length|pluralize:"y,ies" }} currently organize the product list.</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Products</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                        <tr>
+                            <td class="fw-semibold">{{ category.name }}</td>
+                            <td>{{ category.product_count }}</td>
+                            <td>
+                                <div class="action-row">
+                                    <a class="btn btn-sm btn-outline-dark" href="{% url 'category_update' category.pk %}">Edit</a>
+                                    <a class="btn btn-sm btn-outline-danger" href="{% url 'category_delete' category.pk %}">Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 muted-copy">No categories have been created yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

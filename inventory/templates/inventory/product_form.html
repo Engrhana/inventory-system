@@ -1,0 +1,69 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}{{ form_title }} | Ethan's Variety Store{% endblock %}
+
+{% block content %}
+    <div class="hero-card mb-4">
+        <p class="text-uppercase small fw-semibold mb-2 muted-copy">Product Management</p>
+        <h1 class="page-title mb-3">{{ form_title }}</h1>
+        <p class="muted-copy mb-0">{{ form_intro }}</p>
+    </div>
+
+    <div class="dashboard-card">
+        <form method="post" class="inline-form-grid">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-0">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div>
+                <label class="form-label" for="{{ form.name.id_for_label }}">Product name</label>
+                {{ form.name }}
+                {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label class="form-label" for="{{ form.barcode.id_for_label }}">Barcode</label>
+                {{ form.barcode }}
+                {% if form.barcode.errors %}<div class="text-danger small mt-1">{{ form.barcode.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div>
+                <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+                {{ form.category }}
+                {% if form.category.errors %}<div class="text-danger small mt-1">{{ form.category.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.price.id_for_label }}">Price</label>
+                    {{ form.price }}
+                    {% if form.price.errors %}<div class="text-danger small mt-1">{{ form.price.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.reorder_threshold.id_for_label }}">Low-stock threshold</label>
+                    {{ form.reorder_threshold }}
+                    {% if form.reorder_threshold.errors %}<div class="text-danger small mt-1">{{ form.reorder_threshold.errors|join:", " }}</div>{% endif %}
+                </div>
+            </div>
+
+            {% if show_initial_stock %}
+                <div>
+                    <label class="form-label" for="{{ form.initial_stock.id_for_label }}">Initial stock received</label>
+                    {{ form.initial_stock }}
+                    {% if form.initial_stock.errors %}<div class="text-danger small mt-1">{{ form.initial_stock.errors|join:", " }}</div>{% endif %}
+                </div>
+            {% elif product %}
+                <div>
+                    <label class="form-label">Current stock</label>
+                    <input type="number" class="form-control" value="{{ product.stock_quantity }}" disabled>
+                </div>
+            {% endif %}
+
+            <div class="action-row">
+                <button type="submit" class="btn btn-dark">{{ submit_label }}</button>
+                <a class="btn btn-outline-secondary" href="{% url 'inventory_list' %}">Cancel</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}
