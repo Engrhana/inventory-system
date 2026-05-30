@@ -1,10 +1,9 @@
 Ethan's Variety Store Inventory System
 
-Project Documentation in Research Format
-
 Project Title: Ethan's Variety Store Inventory System  
 Technology Used: Python, Django, SQLite, HTML, CSS, JavaScript, Bootstrap  
 GitHub Link: (https://github.com/Engrhana/inventory-system)
+Live Deployment: https://inventory-system-4lvc.onrender.com
 
 Abstract
 
@@ -215,4 +214,3 @@ Local Application URL
 ```text
 http://127.0.0.1:8010/
 ```
-

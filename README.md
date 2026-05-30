@@ -4,6 +4,8 @@ A Django 6.0.3 inventory and sales management system for Ethan's Variety Store, 
 
 Project documentation: `PROJECT_DOCUMENTATION_RESEARCH_FORMAT.md`
 
+Live deployment: https://inventory-system-4lvc.onrender.com
+
 ## Overview
 
 This project was built to manage Ethan's Variety Store from login to reporting. It includes role-based access, product and category management, sales recording with automatic stock updates, dashboard analytics, and export-ready reports.
